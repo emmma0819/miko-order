@@ -64,16 +64,25 @@ button.main:disabled{opacity:.55}
         <button class="link alt" id="newBtn" type="button" style="display:none">처음부터 새로 쓰기</button>
       </div>
 
-      <div class="notice" id="findBox">
-        <b>이미 주문서를 쓰신 적이 있으세요?</b><br>
-        쓰셨을 때 적은 <b>전화번호</b>를 넣고 아래 버튼을 눌러 주세요.
+      <div id="choice">
+        <button class="main" id="chooseOld" type="button" style="margin-top:0">구매한 적 있어요</button>
+        <button class="main" id="chooseNew" type="button" style="margin-top:12px;background:#fff;color:var(--main);border:2px solid var(--main)">처음이에요 (신규 고객)</button>
+      </div>
+
+      <div class="notice" id="findBox" style="display:none;margin-top:18px">
+        <b>전화번호</b>를 넣고 아래 버튼을 누르면 전에 쓰신 <b>닉네임, 성함, 주소</b>가 자동으로 나와요.
         <input type="tel" id="fphone" inputmode="tel" placeholder="전화번호 (숫자만 써도 돼요)" style="margin-top:10px">
-        <button class="link" id="findBtn" type="button">쓰신 내용 불러오기</button>
+        <button class="link" id="findBtn" type="button">전에 쓰신 정보 불러오기</button>
         <div id="findMsg"></div>
       </div>
 
+      <div id="fields" style="display:none">
       <label class="q" for="nick">유튜브 / 틱톡 닉네임 <span class="req">*</span></label>
       <p class="hint">라이브 방송에서 쓰시는 이름이에요. 가장 중요해요.</p>
+      <div class="notice" id="nickNote" style="display:none;font-weight:700">
+        ⚠️ 닉네임을 바꾸셨나요?<br>
+        <span style="font-weight:500">오늘 라이브에서 쓰신 <b>새 닉네임</b>으로 꼭 바꿔서 적어 주세요.<br>닉네임이 다르면 주문이 빠질 수 있어요.</span>
+      </div>
       <input type="text" id="nick" required>
 
       <label class="q" for="depositor">입금자명</label>
@@ -119,6 +128,7 @@ button.main:disabled{opacity:.55}
       </div>
 
       <button class="main" id="submitBtn" type="submit">제출하기</button>
+      </div>
     </form>
   </div>
 </div>
@@ -167,6 +177,8 @@ function saved() {
   return null;
 }
 
+function showFields() { $('fields').style.display = 'block'; }
+
 function showForm() {
   $('done').style.display = 'none';
   $('form').style.display = 'block';
@@ -177,6 +189,9 @@ function applyLoaded(id, order) {
   fillForm(order);
   editId = id;
   try { localStorage.setItem(KEY, JSON.stringify({ id: id, t: Date.now() })); } catch (e) {}
+  showFields();
+  $('nickNote').style.display = 'none';
+  $('choice').style.display = 'none';
   $('savedBox').style.display = 'block';
   $('findBox').style.display = 'none';
   $('savedMsg').innerHTML = '<b>쓰신 내용을 불러왔어요.</b><br>틀린 곳은 고치고, 물건을 더 사셨으면 <b>상품 칸에 이어서 적고</b> 수량과 총금액도 고쳐 주세요.<br>다 고치셨으면 맨 아래 <b>수정 완료</b>를 눌러 주세요.';
@@ -184,6 +199,23 @@ function applyLoaded(id, order) {
   $('newBtn').style.display = 'block';
   $('submitBtn').textContent = '수정 완료';
   showForm();
+}
+
+function applyProfile(pf) {
+  editId = null;
+  fillForm({ nick: pf.nick, depositor: pf.depositor, rname: pf.rname, phone: pf.phone, address: pf.address, items: '', qty: '', amount: '', shipping: '' });
+  $('a1').checked = $('a2').checked = false;
+  showFields();
+  $('choice').style.display = 'none';
+  $('savedBox').style.display = 'block';
+  $('findBox').style.display = 'none';
+  $('savedMsg').innerHTML = '<b>전에 쓰신 정보를 불러왔어요.</b><br><b>닉네임이 오늘 쓰신 것과 같은지</b> 먼저 확인하시고, 성함, 전화번호, 주소도 맞는지 보세요.<br>그다음 <b>상품, 수량, 총금액</b>을 새로 적어 주세요.';
+  $('loadBtn').style.display = 'none';
+  $('newBtn').style.display = 'block';
+  $('submitBtn').textContent = '제출하기';
+  $('nickNote').style.display = 'block';
+  showForm();
+  $('nickNote').scrollIntoView({ block: 'center' });
 }
 
 async function loadOrder(id) {
@@ -209,8 +241,8 @@ async function findOrder() {
   try {
     const r = await fetch(API + '?action=find&phone=' + encodeURIComponent(phone));
     const j = await r.json();
-    if (!j.ok) { msg.textContent = '10시간 안에 쓰신 주문서를 못 찾았어요. 주문서에 적으셨던 전화번호와 같은지 확인해 주세요.'; return; }
-    applyLoaded(j.id, j.order);
+    if (!j.ok) { msg.textContent = '쓰신 주문서를 못 찾았어요. 전에 적으셨던 전화번호와 같은지 확인해 주세요. 처음 주문하시면 위의 [처음이에요] 버튼을 눌러 주세요.'; return; }
+    if (j.mode === 'profile') applyProfile(j.profile); else applyLoaded(j.id, j.order);
   } catch (e) {
     msg.textContent = '연결이 안 됐어요. 잠시 후 다시 눌러 주세요.';
   } finally {
@@ -225,11 +257,27 @@ $('loadBtn').onclick = () => { const s = saved(); if (s) loadOrder(s.id); };
 $('newBtn').onclick = () => {
   editId = null;
   $('form').reset();
-  $('savedMsg').innerHTML = '이미 주문서를 쓰신 적이 있어요.<br>아래 버튼을 누르면 쓰신 내용이 그대로 나와요.';
-  $('loadBtn').style.display = 'block';
-  $('newBtn').style.display = 'none';
+  $('nickNote').style.display = 'none';
+  $('savedBox').style.display = 'none';
+  $('findBox').style.display = 'none';
+  $('choice').style.display = 'block';
   $('submitBtn').textContent = '제출하기';
+  showFields();
+};
+
+$('chooseOld').onclick = () => {
   $('findBox').style.display = 'block';
+  $('fields').style.display = 'none';
+  $('fphone').focus();
+};
+
+$('chooseNew').onclick = () => {
+  editId = null;
+  $('nickNote').style.display = 'none';
+  $('findBox').style.display = 'none';
+  $('submitBtn').textContent = '제출하기';
+  showFields();
+  $('nick').scrollIntoView({ block: 'center' });
 };
 
 $('reedit').onclick = () => { if (editId) loadOrder(editId); };
