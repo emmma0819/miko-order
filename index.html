@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>미코사픽 주문서</title>
+<style>
+:root{--bg:#f3e9ef;--card:#fff;--ink:#2a1f28;--mut:#6b5a66;--main:#8f2d5e;--soft:#fbe9f2;--line:#d9c3d1}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:18px;line-height:1.6}
+.wrap{max-width:560px;margin:0 auto;padding:16px 14px 40px}
+.head{background:var(--main);color:#fff;border-radius:16px 16px 0 0;padding:30px 20px;text-align:center}
+.head h1{margin:0;font-size:32px;font-weight:800}
+.head p{margin:8px 0 0;font-size:17px;opacity:.95}
+.card{background:var(--card);border-radius:0 0 16px 16px;padding:20px 20px 28px}
+.notice{background:var(--soft);border-left:5px solid var(--main);padding:14px 16px;margin:0 0 18px;font-size:18px}
+.link{color:#fff;background:var(--main);border:0;border-radius:10px;padding:13px 18px;margin-top:10px;font:inherit;font-weight:700;cursor:pointer;display:block;width:100%}
+.link.alt{background:#fff;color:var(--main);border:1.5px solid var(--main)}
+label.q,.qt{display:block;font-weight:800;font-size:19px;margin:26px 0 2px}
+.hint{color:var(--mut);font-size:16px;margin:0 0 8px}
+.req{color:var(--main)}
+input[type=text],input[type=tel],input[type=number],textarea{width:100%;padding:15px 13px;border:1.5px solid var(--line);border-radius:10px;font:inherit;font-size:18px;background:#fff}
+textarea{min-height:110px;resize:vertical}
+input:focus,textarea:focus{outline:3px solid var(--main);outline-offset:1px}
+.opt{display:flex;gap:12px;align-items:center;padding:10px 0;font-size:18px}
+.opt input{width:26px;height:26px;accent-color:var(--main);flex:none}
+.agree{background:#faf6f8;border-radius:10px;padding:16px;margin-top:18px;font-size:16.5px}
+button.main{width:100%;margin-top:28px;padding:18px;border:0;border-radius:12px;background:var(--main);color:#fff;font:inherit;font-size:20px;font-weight:800;cursor:pointer}
+button.main:disabled{opacity:.55}
+#done{display:none}
+#done .top{text-align:center}
+#done .ck{width:68px;height:68px;border-radius:50%;background:var(--main);color:#fff;font-size:36px;line-height:68px;margin:6px auto 14px}
+#done h2{color:var(--main);margin:0 0 10px;font-size:25px}
+#done .warn{background:var(--soft);border-left:5px solid var(--main);padding:14px 16px;margin:18px 0 10px;font-weight:700;font-size:17px}
+.sum{border:1.5px solid var(--line);border-radius:12px;padding:6px 14px;margin:18px 0}
+.sum div{padding:9px 0;border-bottom:1px solid #eee3ea;font-size:17px}
+.sum div:last-child{border:0}
+.sum b{display:block;color:var(--mut);font-size:15px;font-weight:600}
+.sum span{white-space:pre-wrap;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head"><h1>미코사픽 주문서</h1><p>아래 칸을 차례대로 적어 주세요</p></div>
+  <div class="card">
+
+    <div id="done">
+      <div class="top">
+        <div class="ck">✓</div>
+        <h2 id="doneTitle">주문이 접수되었습니다</h2>
+      </div>
+      <p style="margin:0;text-align:center"><b>적으신 내용이 맞는지 확인해 주세요.</b></p>
+      <div class="sum" id="sum"></div>
+      <button class="main" id="reedit" type="button" style="margin-top:6px">틀린 곳 고치기 · 물건 더 추가하기</button>
+      <div class="warn">첫 구매 고객님은 꼭 확인하세요<br>카카오 채널톡으로 닉네임+사진캡쳐 주문서 작성여부를 꼭 남겨주세요!<br>남기지 않으면 주문이 누락됩니다!!</div>
+      <p style="text-align:center">입금 확인 후 순서대로 보내드려요.<br>맞으면 이 화면은 닫으셔도 됩니다.</p>
+    </div>
+
+    <form id="form">
+      <div class="notice" id="savedBox" style="display:none">
+        <div id="savedMsg">이미 주문서를 쓰신 적이 있어요.<br>아래 버튼을 누르면 쓰신 내용이 그대로 나와요.</div>
+        <button class="link" id="loadBtn" type="button">쓰신 내용 불러와서 고치기</button>
+        <button class="link alt" id="newBtn" type="button" style="display:none">처음부터 새로 쓰기</button>
+      </div>
+
+      <label class="q" for="nick">유튜브 / 틱톡 닉네임 <span class="req">*</span></label>
+      <p class="hint">라이브 방송에서 쓰시는 이름이에요. 가장 중요해요.</p>
+      <input type="text" id="nick" required>
+
+      <label class="q" for="depositor">입금자명</label>
+      <p class="hint">은행에서 입금하신 분의 이름이에요.</p>
+      <input type="text" id="depositor">
+
+      <label class="q" for="items">상품 특징 / 컬러 / 사이즈</label>
+      <p class="hint">산 물건의 이름, 색, 사이즈를 적어 주세요.<br>예) 블라우스 베이지 66</p>
+      <textarea id="items"></textarea>
+
+      <label class="q" for="qty">총 주문 수량</label>
+      <p class="hint">산 물건이 모두 몇 개인지 숫자로 적어 주세요.</p>
+      <input type="number" id="qty" inputmode="numeric" min="0">
+
+      <label class="q" for="amount">총금액 (배송비 포함, 입금하신 금액) <span class="req">*</span></label>
+      <p class="hint">입금하신 돈을 숫자로 적어 주세요.<br>예) 59000</p>
+      <input type="text" id="amount" inputmode="numeric" required>
+
+      <div class="qt">배송비</div>
+      <p class="hint">해당하는 것 하나를 눌러 주세요.</p>
+      <label class="opt"><input type="radio" name="shipping" value="4000원"> 4000원</label>
+      <label class="opt"><input type="radio" name="shipping" value="무료배송"> 무료배송</label>
+
+      <label class="q" for="rname">상품 받으실 분 성함</label>
+      <p class="hint">택배를 받으실 분의 이름이에요.</p>
+      <input type="text" id="rname">
+
+      <label class="q" for="phone">고객님 전화번호</label>
+      <p class="hint">예) 010-1234-5678</p>
+      <input type="tel" id="phone" inputmode="tel">
+
+      <label class="q" for="address">상품 받으실 주소 (상세주소)</label>
+      <p class="hint">동, 호수까지 자세히 적어 주세요.</p>
+      <input type="text" id="address">
+
+      <div class="agree">
+        라이브 중개 상품으로 단순 변심, 배송 지연, 퀄리티 불만족 등 개인 사유로 교환 또는 반품이 불가함에 동의합니다. 수입 제품 / 주문상품은 최대 2-3주가 소요될 수 있습니다.
+        <label class="opt"><input type="checkbox" id="a1" required> 동의합니다</label>
+      </div>
+      <div class="agree">
+        개인정보(이름, 연락처, 주소) 수집 및 이용에 동의합니다. 수집 목적은 주문·배송 확인이며, 라이브 채널 운영 기간 동안 보유합니다.
+        <label class="opt"><input type="checkbox" id="a2" required> 동의합니다</label>
+      </div>
+
+      <button class="main" id="submitBtn" type="submit">제출하기</button>
+    </form>
+  </div>
+</div>
+
+<script>
+// ▼ Apps Script 배포 후 받은 웹 앱 URL을 아래 따옴표 안에 붙여넣으세요
+const API = 'https://script.google.com/macros/s/AKfycbxupMPyp6t0HCMlyMRPssJuAstN09xMd8v1FMI1vcXLpBeIhW2_pq_f-_x5qCysQTJv/exec';
+
+const KEY = 'miko_last_order';
+const HOURS = 24;
+const $ = id => document.getElementById(id);
+const FIELDS = ['nick','depositor','items','qty','amount','rname','phone','address'];
+const LABELS = {nick:'닉네임',depositor:'입금자명',items:'상품 / 컬러 / 사이즈',qty:'총 주문 수량',amount:'총금액',shipping:'배송비',rname:'받으실 분 성함',phone:'전화번호',address:'주소'};
+let editId = null;
+
+function readForm() {
+  const d = {};
+  FIELDS.forEach(f => d[f] = $(f).value.trim());
+  const s = document.querySelector('input[name=shipping]:checked');
+  d.shipping = s ? s.value : '';
+  return d;
+}
+
+function fillForm(o) {
+  FIELDS.forEach(f => $(f).value = o[f] == null ? '' : o[f]);
+  document.querySelectorAll('input[name=shipping]').forEach(r => r.checked = (r.value === o.shipping));
+  $('a1').checked = $('a2').checked = true;
+}
+
+function renderSummary(d) {
+  const box = $('sum');
+  box.textContent = '';
+  Object.keys(LABELS).forEach(k => {
+    const row = document.createElement('div');
+    const b = document.createElement('b'); b.textContent = LABELS[k];
+    const s = document.createElement('span'); s.textContent = d[k] || '(적지 않음)';
+    row.appendChild(b); row.appendChild(s); box.appendChild(row);
+  });
+}
+
+function saved() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (s && s.id && Date.now() - s.t < HOURS * 3600e3) return s;
+  } catch (e) {}
+  return null;
+}
+
+function showForm() {
+  $('done').style.display = 'none';
+  $('form').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+async function loadOrder(id) {
+  try {
+    const r = await fetch(API + '?id=' + encodeURIComponent(id));
+    const j = await r.json();
+    if (!j.ok) throw 0;
+    fillForm(j.order);
+    editId = id;
+    $('savedBox').style.display = 'block';
+    $('savedMsg').innerHTML = '<b>쓰신 내용을 불러왔어요.</b><br>틀린 곳은 고치고, 물건을 더 사셨으면 <b>상품 칸에 이어서 적고</b> 수량과 총금액도 고쳐 주세요.<br>다 고치셨으면 맨 아래 <b>수정 완료</b>를 눌러 주세요.';
+    $('loadBtn').style.display = 'none';
+    $('newBtn').style.display = 'block';
+    $('submitBtn').textContent = '수정 완료';
+    showForm();
+  } catch (e) {
+    localStorage.removeItem(KEY);
+    $('savedBox').style.display = 'none';
+    alert('이전 주문을 찾지 못했어요. 새로 작성해 주세요.');
+    showForm();
+  }
+}
+
+$('loadBtn').onclick = () => { const s = saved(); if (s) loadOrder(s.id); };
+
+$('newBtn').onclick = () => {
+  editId = null;
+  $('form').reset();
+  $('savedMsg').innerHTML = '이미 주문서를 쓰신 적이 있어요.<br>아래 버튼을 누르면 쓰신 내용이 그대로 나와요.';
+  $('loadBtn').style.display = 'block';
+  $('newBtn').style.display = 'none';
+  $('submitBtn').textContent = '제출하기';
+};
+
+$('reedit').onclick = () => { if (editId) loadOrder(editId); };
+
+$('form').onsubmit = async e => {
+  e.preventDefault();
+  const btn = $('submitBtn');
+  const data = readForm();
+  btn.disabled = true;
+  try {
+    const r = await fetch(API, { method: 'POST', body: JSON.stringify(Object.assign({}, data, { id: editId })) });
+    const j = await r.json();
+    if (!j.ok) throw 0;
+    editId = j.id;
+    localStorage.setItem(KEY, JSON.stringify({ id: j.id, t: Date.now() }));
+    $('doneTitle').textContent = j.updated ? '주문이 수정되었습니다' : '주문이 접수되었습니다';
+    renderSummary(data);
+    $('form').style.display = 'none';
+    $('done').style.display = 'block';
+    window.scrollTo(0, 0);
+  } catch (err) {
+    alert('전송이 안 됐어요. 잠시 후 제출 버튼을 다시 눌러 주세요.');
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+if (saved()) $('savedBox').style.display = 'block';
+</script>
+</body>
+</html>
