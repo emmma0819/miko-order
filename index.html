@@ -27,6 +27,7 @@ input:focus,textarea:focus{outline:3px solid var(--main);outline-offset:1px}
 .agree{background:#faf6f8;border-radius:10px;padding:16px;margin-top:18px;font-size:16.5px}
 button.main{width:100%;margin-top:28px;padding:18px;border:0;border-radius:12px;background:var(--main);color:#fff;font:inherit;font-size:20px;font-weight:800;cursor:pointer}
 button.main:disabled{opacity:.55}
+#findMsg{color:#a32d2d;font-weight:700;margin-top:10px}
 #done{display:none}
 #done .top{text-align:center}
 #done .ck{width:68px;height:68px;border-radius:50%;background:var(--main);color:#fff;font-size:36px;line-height:68px;margin:6px auto 14px}
@@ -61,6 +62,15 @@ button.main:disabled{opacity:.55}
         <div id="savedMsg">이미 주문서를 쓰신 적이 있어요.<br>아래 버튼을 누르면 쓰신 내용이 그대로 나와요.</div>
         <button class="link" id="loadBtn" type="button">쓰신 내용 불러와서 고치기</button>
         <button class="link alt" id="newBtn" type="button" style="display:none">처음부터 새로 쓰기</button>
+      </div>
+
+      <div class="notice" id="findBox">
+        <b>이미 주문서를 쓰신 적이 있으세요?</b><br>
+        쓰셨을 때 적은 <b>닉네임</b>과 <b>전화번호</b>를 넣고 아래 버튼을 눌러 주세요.
+        <input type="text" id="fnick" placeholder="닉네임" style="margin-top:10px">
+        <input type="tel" id="fphone" inputmode="tel" placeholder="전화번호 (예: 010-1234-5678)" style="margin-top:8px">
+        <button class="link" id="findBtn" type="button">쓰신 내용 불러오기</button>
+        <div id="findMsg"></div>
       </div>
 
       <label class="q" for="nick">유튜브 / 틱톡 닉네임 <span class="req">*</span></label>
@@ -164,26 +174,52 @@ function showForm() {
   window.scrollTo(0, 0);
 }
 
+function applyLoaded(id, order) {
+  fillForm(order);
+  editId = id;
+  try { localStorage.setItem(KEY, JSON.stringify({ id: id, t: Date.now() })); } catch (e) {}
+  $('savedBox').style.display = 'block';
+  $('findBox').style.display = 'none';
+  $('savedMsg').innerHTML = '<b>쓰신 내용을 불러왔어요.</b><br>틀린 곳은 고치고, 물건을 더 사셨으면 <b>상품 칸에 이어서 적고</b> 수량과 총금액도 고쳐 주세요.<br>다 고치셨으면 맨 아래 <b>수정 완료</b>를 눌러 주세요.';
+  $('loadBtn').style.display = 'none';
+  $('newBtn').style.display = 'block';
+  $('submitBtn').textContent = '수정 완료';
+  showForm();
+}
+
 async function loadOrder(id) {
   try {
     const r = await fetch(API + '?id=' + encodeURIComponent(id));
     const j = await r.json();
     if (!j.ok) throw 0;
-    fillForm(j.order);
-    editId = id;
-    $('savedBox').style.display = 'block';
-    $('savedMsg').innerHTML = '<b>쓰신 내용을 불러왔어요.</b><br>틀린 곳은 고치고, 물건을 더 사셨으면 <b>상품 칸에 이어서 적고</b> 수량과 총금액도 고쳐 주세요.<br>다 고치셨으면 맨 아래 <b>수정 완료</b>를 눌러 주세요.';
-    $('loadBtn').style.display = 'none';
-    $('newBtn').style.display = 'block';
-    $('submitBtn').textContent = '수정 완료';
-    showForm();
+    applyLoaded(id, j.order);
   } catch (e) {
-    localStorage.removeItem(KEY);
+    try { localStorage.removeItem(KEY); } catch (e2) {}
     $('savedBox').style.display = 'none';
     alert('이전 주문을 찾지 못했어요. 새로 작성해 주세요.');
     showForm();
   }
 }
+
+async function findOrder() {
+  const nick = $('fnick').value.trim(), phone = $('fphone').value.trim();
+  const msg = $('findMsg'), btn = $('findBtn');
+  msg.textContent = '';
+  if (!nick || !phone) { msg.textContent = '닉네임과 전화번호를 모두 적어 주세요.'; return; }
+  btn.disabled = true;
+  try {
+    const r = await fetch(API + '?action=find&nick=' + encodeURIComponent(nick) + '&phone=' + encodeURIComponent(phone));
+    const j = await r.json();
+    if (!j.ok) { msg.textContent = '24시간 안에 쓰신 주문서를 못 찾았어요. 닉네임과 전화번호가 쓰셨던 것과 같은지 확인해 주세요.'; return; }
+    applyLoaded(j.id, j.order);
+  } catch (e) {
+    msg.textContent = '연결이 안 됐어요. 잠시 후 다시 눌러 주세요.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+$('findBtn').onclick = findOrder;
 
 $('loadBtn').onclick = () => { const s = saved(); if (s) loadOrder(s.id); };
 
@@ -194,6 +230,7 @@ $('newBtn').onclick = () => {
   $('loadBtn').style.display = 'block';
   $('newBtn').style.display = 'none';
   $('submitBtn').textContent = '제출하기';
+  $('findBox').style.display = 'block';
 };
 
 $('reedit').onclick = () => { if (editId) loadOrder(editId); };
@@ -208,7 +245,7 @@ $('form').onsubmit = async e => {
     const j = await r.json();
     if (!j.ok) throw 0;
     editId = j.id;
-    localStorage.setItem(KEY, JSON.stringify({ id: j.id, t: Date.now() }));
+    try { localStorage.setItem(KEY, JSON.stringify({ id: j.id, t: Date.now() })); } catch (e2) {}
     $('doneTitle').textContent = j.updated ? '주문이 수정되었습니다' : '주문이 접수되었습니다';
     renderSummary(data);
     $('form').style.display = 'none';
